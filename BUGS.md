@@ -78,6 +78,32 @@ headless against the real game modules (see
   - The level 3-5 rushers are moved 2.3 m. That is reported as a warning for
     level design, see Open.
 
+### 4. Rushers kill the player through walls
+
+- **Steps:**
+  1. Start level 1-2 and kill the two walkers. The second wave starts: two
+     rushers outside the carriage.
+  2. Stand inside the carriage close to the right-hand wall, opposite where a
+     rusher runs past outside, about 1.5 m from it.
+- **Expected:** the rusher has to come in through a door before it can hit
+  you; a wall protects you.
+- **Actual:** you die while the rusher is still outside, on the other side of
+  the wall. You can't see it or shoot it. It only happens with a thin wall
+  between you, within about 1.5 m; in the open, melee works as intended.
+- **Root cause:** [`updateEnemy`](src/game/world/enemy.ts) started a melee
+  attack when the player was in range and in front of the enemy, ignoring line
+  of sight. `meleeStrike` then killed the player based on distance, facing and
+  height only. Neither checked for walls.
+- **Fix:** an attack only starts when the enemy can see the player (`canSee`,
+  which includes line of sight). The strike, about 0.36 s later, only lands if
+  the line between the two chests is still clear, so the player can step
+  behind cover in time.
+- **Verified:** `node tools/playtest/repro/melee-through-wall.mjs` → `PASS`.
+  - Behind the wall, the player is now only killed after the rusher walks
+    round through the door (kill from inside, in plain sight).
+  - In the open, the rusher still kills.
+  - With the fix removed, the same test reports `FAIL … THROUGH THE WALL`.
+
 ## Open (noticed, not yet fixed)
 
 - **Level 3-5 rusher spawns are deep inside a building block** at (±14, 0),

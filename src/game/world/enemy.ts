@@ -223,7 +223,8 @@ export function updateEnemy(world, e, dt) {
         moveTarget = player.pos;
         speed = meleeSpeed;
         stopDist = 0.9;
-        if (distP < MELEE_RANGE && e.meleeCooldown <= 0 && Math.abs(angleDiff(yawToPlayer, e.yaw)) < 0.7 && Math.abs(playerEye[1] - eye[1]) < 1.2) {
+        // canSee includes line of sight: no swinging at the player through a wall
+        if (canSee && distP < MELEE_RANGE && e.meleeCooldown <= 0 && Math.abs(angleDiff(yawToPlayer, e.yaw)) < 0.7 && Math.abs(playerEye[1] - eye[1]) < 1.2) {
           e.meleeT = 1e-3;
           world.events.push({ type: "melee", pos: [eye[0], eye[1], eye[2]] });
         }
@@ -399,7 +400,10 @@ function meleeStrike(world, e) {
   const d = Math.hypot(dx, dz);
   const facing = Math.abs(angleDiff(yawOf(dx, dz), e.yaw)) < 0.9;
   const vertical = Math.abs(p.pos[1] - e.pos[1]) < 1.2;
-  if (d < MELEE_RANGE + 0.15 && facing && vertical) {
+  // the strike lands ~0.36 s after the swing starts; the player may have
+  // stepped behind cover in the meantime
+  const reachable = world.static.lineClear([e.pos[0], e.pos[1] + 1.3, e.pos[2]], [p.pos[0], p.pos[1] + 1.3, p.pos[2]]);
+  if (d < MELEE_RANGE + 0.15 && facing && vertical && reachable) {
     world.killPlayer([dx / Math.max(d, 1e-3), 0, dz / Math.max(d, 1e-3)]);
   }
 }
