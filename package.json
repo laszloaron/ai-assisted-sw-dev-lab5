@@ -10,7 +10,9 @@
     "check:equivalence": "node tools/equivalence/check.mjs"
   },
   "devDependencies": {
+    "@webgpu/types": "^0.1.74",
     "jsdom": "^29.1.1",
+    "typescript": "^7.0.2",
     "vite": "^8.3.8"
   },
   "dependencies": {
