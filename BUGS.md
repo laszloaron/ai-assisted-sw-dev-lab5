@@ -48,8 +48,41 @@ headless against the real game modules (see
 - **Verified:** `node tools/playtest/repro/time-scale.mjs` → `PASS standing
   0.015, walking 1.000, stopped again 0.015` (was 1.000 / 1.000 / 1.000).
 
+### 3. In 1-2 the player starts on the roof of the train carriage
+
+- **Steps:** start level 1-2 (CARRIAGE) and don't move.
+- **Expected:** you start inside the carriage, between the two walkers.
+- **Actual:** you start standing on the carriage roof, about 3 m up. The
+  walkers inside can't see you, and the rushers of the second wave stand under
+  you and can't reach you, so the level can never be cleared. Only this level
+  shows it so obviously. The same mistake (a spawn overlapping geometry) puts
+  20 spawns in 9 levels inside or on top of crates, poles and walls: for
+  example, the 1-3 rushers start on top of 2.4 m crates.
+- **Root cause:** spawn points are points, but characters are 0.6 m wide. The
+  1-2 player spawn (0, 0, 0) is inside the grab pole at z = 0, and many enemy
+  spawns are on the edge of a crate. Nothing moved a spawning character out of
+  geometry. Then [`StaticWorld.moveAxis`](src/game/world/StaticWorld.ts), on
+  the first downward (gravity) move, snaps any overlapping character on top of
+  the box it overlaps, however deep inside it is.
+- **Fix:** new `StaticWorld.findFreeSpot(pos, r, h)` returns the spawn point
+  if it is free, otherwise the nearest free spot within 3 m that has a floor
+  under it. `World` uses it for the player spawn and every enemy spawn;
+  `Game.resetWorld` puts the player controller there. The level data is
+  unchanged.
+- **Verified:**
+  - `node tools/playtest/repro/level-spawns.mjs` checks all 130 spawns in all
+    15 levels → `PASS`: 20 nudged out of geometry, none left inside, all with
+    a floor.
+  - The bot (`node tools/playtest/bot-run.mjs 1`) now starts 1-2 inside the
+    carriage and fights the enemies.
+  - The level 3-5 rushers are moved 2.3 m. That is reported as a warning for
+    level design, see Open.
+
 ## Open (noticed, not yet fixed)
 
+- **Level 3-5 rusher spawns are deep inside a building block** at (±14, 0),
+  so they are moved 2.3 m (`repro/level-spawns.mjs` warning). Act 3 needs a
+  level-design pass.
 - **Debug keys work in normal play.** F2 (freeze time) and F3 (real time)
   are always active, so the saved best times are easy to cheat.
 - **Replay hand-bob uses the distance from the world origin**, not the

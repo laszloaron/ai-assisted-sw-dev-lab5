@@ -109,6 +109,33 @@ export class StaticWorld {
     }
     return false;
   }
+  /**
+   * Where a character of radius r and height h standing at `pos` can actually
+   * spawn: `pos` itself if it is free, otherwise the nearest free spot (within
+   * 3 m) that still has a floor under it.
+   *
+   * Spawn points in the level data are points, but characters are 0.6 m wide,
+   * and several spawns sit on the edge of a crate or a pole. Without this,
+   * the first downward move in moveAxis snaps an embedded character on top of
+   * the box it overlaps (e.g. the player onto the carriage roof in 1-2).
+   */
+  findFreeSpot(pos, r, h) {
+    const fits = (x, y, z) => !this.overlapsAabb([x - r, y + 0.06, z - r], [x + r, y + h, z + r]);
+    if (fits(pos[0], pos[1], pos[2]))
+      return [pos[0], pos[1], pos[2]];
+    for (let dist = 0.1; dist <= 3; dist += 0.1) {
+      for (let k = 0; k < 32; k++) {
+        const a = k / 32 * Math.PI * 2;
+        const x = pos[0] + Math.cos(a) * dist, z = pos[2] + Math.sin(a) * dist;
+        if (!fits(x, pos[1], z))
+          continue;
+        const floor = this.raycast([x, pos[1] + 0.3, z], [0, -1, 0], 1.3);
+        if (floor && floor.normal[1] > 0.5)
+          return [x, pos[1], z];
+      }
+    }
+    return [pos[0], pos[1], pos[2]];
+  }
   moveCharacter(pos, delta, r, h, stepHeight, canStep) {
     const res = { grounded: false, hitWall: false, hitCeiling: false };
     const maxD = Math.max(Math.abs(delta[0]), Math.abs(delta[1]), Math.abs(delta[2]));

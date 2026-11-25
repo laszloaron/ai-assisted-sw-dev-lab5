@@ -1,8 +1,8 @@
 // The simulation: player actions, props, projectiles, waves, win/lose. Emits events, never draws.
 import { Rng } from "../../engine/math/Rng";
 import { clamp, copy, dirFromYawPitch, distSq, distXZ, dot, len, normalize, v3 } from "../../engine/math/vec3";
-import { EYE_HEIGHT, GRAVITY2, PLAYER_BODY_A, PLAYER_BODY_B, PLAYER_BODY_R, PROP_PHYS_RADIUS, PUNCH_COOLDOWN, PUNCH_RANGE, REACH, REST_ROT, SHOT_HEARING, SLASH_RANGE, THROW_SPEED } from "./constants";
-import { BODY_A, BODY_B, BODY_RADIUS, HEAD_OFFSET, HEAD_RADIUS, createEnemy, enemyMuzzle, savePrev, updateEnemy } from "./enemy";
+import { EYE_HEIGHT, GRAVITY2, PLAYER_BODY_A, PLAYER_BODY_B, PLAYER_BODY_R, PLAYER_HEIGHT, PLAYER_RADIUS, PROP_PHYS_RADIUS, PUNCH_COOLDOWN, PUNCH_RANGE, REACH, REST_ROT, SHOT_HEARING, SLASH_RANGE, THROW_SPEED } from "./constants";
+import { BODY_A, BODY_B, BODY_RADIUS, ENEMY_HEIGHT, ENEMY_RADIUS, HEAD_OFFSET, HEAD_RADIUS, createEnemy, enemyMuzzle, savePrev, updateEnemy } from "./enemy";
 import { BULLET_LIFE, BULLET_RADIUS, BULLET_SPEED, FRAGILE, ITEM_RADIUS, WEAPONS, isGun, isWeapon, newItem } from "./items";
 import { NavGrid } from "./NavGrid";
 import { StaticWorld, segmentCapsule, segmentSphere } from "./StaticWorld";
@@ -43,7 +43,8 @@ export class World {
     }
     const p = def.player;
     this.player = {
-      pos: [p.pos[0], p.pos[1], p.pos[2]],
+      // nudged out of any geometry the spawn point overlaps (see findFreeSpot)
+      pos: this.static.findFreeSpot(p.pos, PLAYER_RADIUS, PLAYER_HEIGHT),
       vel: v3(),
       yaw: p.yaw,
       pitch: 0,
@@ -550,7 +551,8 @@ export class World {
     while (this.spawnQueue.length > 0 && this.enemies.length < max) {
       const q = this.spawnQueue.shift();
       const s = q.spawn;
-      const pos = s.pos.length === 2 ? [s.pos[0], 0.05, s.pos[1]] : [s.pos[0], s.pos[1] + 0.05, s.pos[2]];
+      const designed = s.pos.length === 2 ? [s.pos[0], 0.05, s.pos[1]] : [s.pos[0], s.pos[1] + 0.05, s.pos[2]];
+      const pos = this.static.findFreeSpot(designed, ENEMY_RADIUS, ENEMY_HEIGHT);
       const yaw = s.yaw ?? Math.atan2(-(this.player.pos[0] - pos[0]), -(this.player.pos[2] - pos[2]));
       const e = createEnemy(this.nextId++, s.kind, pos, yaw, s.weapon, !!s.idle, this.rng.next());
       if (initial)

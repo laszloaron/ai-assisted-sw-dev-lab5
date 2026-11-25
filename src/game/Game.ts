@@ -156,7 +156,7 @@ export class Game {
   resetWorld() {
     this.world = new World(this.def, this.shared ?? void 0);
     this.shared = this.world.staticData;
-    this.player.reset(this.def.player.pos, this.def.player.yaw);
+    this.player.reset(this.world.player.pos, this.def.player.yaw);
     this.driver.reset();
     this.recorder.reset();
     this.fx.clear();

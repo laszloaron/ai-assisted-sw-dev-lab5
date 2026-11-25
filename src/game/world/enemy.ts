@@ -8,9 +8,9 @@ const ENEMY_PARAMS = {
   marksman: { speed: 1.1, turnRate: 3.2, reaction: 0.7, aimError: 1, keepDist: 40, cooldownMul: 1, hp: 2, defaultWeapon: "carbine" }
 };
 
-const ENEMY_RADIUS = 0.3;
+export const ENEMY_RADIUS = 0.3;
 
-const ENEMY_HEIGHT = 1.8;
+export const ENEMY_HEIGHT = 1.8;
 
 export const HEAD_OFFSET = 1.7;
 
