@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:equivalence": "node tools/equivalence/check.mjs"
   },
   "devDependencies": {
+    "jsdom": "^29.1.1",
     "vite": "^8.3.8"
   }
 }
