@@ -27,12 +27,29 @@ headless against the real game modules (see
   `FAIL state=title`). Levels 2+ are still locked until the previous level is
   cleared.
 
+### 2. Time never slows down: the core mechanic is off
+
+- **Steps:**
+  1. Start level 1-1.
+  2. Stand still and don't touch the mouse.
+- **Expected:** "time moves only when you move". Enemies and bullets nearly
+  freeze while you stand still, and run at full speed while you walk.
+- **Actual:** everything always runs at full speed. With F4, the overlay shows
+  `timeScale 1.000` whether you stand still or walk. The crosshair never
+  rotates and the screen never loses its colour. It never happens differently:
+  there is no slow motion at all.
+- **Root cause:** in [`Game.frame`](src/game/Game.ts), the call
+  `driver.update(dt, WALK_SPEED, planarSpeed, …)` swaps two arguments of
+  [`TimeScaleDriver.update(realDt, planarSpeed, maxSpeed, …)`](src/game/TimeScaleDriver.ts).
+  So the code computes `4 / speed` instead of `speed / 4`. Standing still,
+  that is `4 / 0 = Infinity`, which is clamped to 1, so time always runs at
+  full speed.
+- **Fix:** pass `planarSpeed, WALK_SPEED` in the declared order.
+- **Verified:** `node tools/playtest/repro/time-scale.mjs` → `PASS standing
+  0.015, walking 1.000, stopped again 0.015` (was 1.000 / 1.000 / 1.000).
+
 ## Open (noticed, not yet fixed)
 
-- **Time never slows down.** The core mechanic is off: `Game.frame` passes
-  `WALK_SPEED` and `planarSpeed` to `TimeScaleDriver.update` in the wrong
-  order. The time scale is 1.000 while standing still
-  (`repro/time-scale.mjs`).
 - **Debug keys work in normal play.** F2 (freeze time) and F3 (real time)
   are always active, so the saved best times are easy to cheat.
 - **Replay hand-bob uses the distance from the world origin**, not the
