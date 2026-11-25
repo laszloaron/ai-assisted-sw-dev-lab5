@@ -102,7 +102,7 @@ export function makeBot(pt, { log = () => {} } = {}) {
     if (move === "toward-any") {
       const any = w.enemies.find((e) => e.alive);
       if (any) { aimAt = [any.pos[0], any.pos[1] + 1.2, any.pos[2]]; move = "toward"; }
-      else move = null;
+      else move = "strafe"; // between waves: keep moving so time (and the next wave) comes
     }
     if (aimAt) pt.lookAt(aimAt);
     if (bullet) move = "strafe";
