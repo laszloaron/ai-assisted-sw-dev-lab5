@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "https://cdn.jsdelivr.net/npm/wgpu-matrix@3.4.2/dist/3.x/wgpu-matrix.module.min.js";
+import { mat4, vec3 } from "wgpu-matrix";
 
 var UnsupportedError = class extends Error {
 };
