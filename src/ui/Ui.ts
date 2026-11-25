@@ -325,7 +325,8 @@ export class Ui {
     });
   }
   isUnlocked(index) {
-    if (index < 0)
+    // the first level is always unlocked (it has no previous level to clear)
+    if (index <= 0)
       return true;
     const prev = this.levels[index - 1];
     return !!prev && !!this.save.levels[prev.id]?.cleared;

@@ -1,88 +1,52 @@
-# Known bugs (not fixed yet)
+# Bugs
 
-Things that look wrong, noticed while analysing and refactoring the game.
-**None of them is fixed**: the refactor keeps the original behaviour exactly,
-and the equivalence check (`npm run check:equivalence`) proves it. Each one
-should be fixed in its own reviewable change.
+One entry per bug. Fixed bugs come first, in the order they were fixed. Each
+one has a reproduction script in [tools/playtest/repro/](tools/playtest/repro/)
+that prints `FAIL` while the bug exists and `PASS` once it is fixed. They run
+headless against the real game modules (see
+[tools/playtest/playtest.mjs](tools/playtest/playtest.mjs)). Run them all with
+`npm run repro`.
 
-Paths point to the refactored code. Status:
-- **confirmed**: reproduced in the headless equivalence run.
-- **from reading**: seen in the code, not reproduced yet.
+## Fixed
 
-## Gameplay
+### 1. PLAY does nothing on a new save; level 1-1 can never be started
 
-### B1. Time never slows down: the core mechanic is off (confirmed)
-[src/game/Game.ts](src/game/Game.ts) calls
-`driver.update(dt, WALK_SPEED, this.player.planarSpeed, …)`, but
-[`TimeScaleDriver.update`](src/game/TimeScaleDriver.ts) is declared as
-`update(realDt, planarSpeed, maxSpeed, …)`. The arguments are swapped, so the
-code computes `4 / speed` instead of `speed / 4`. When you stand still that is
-`4 / 0 = Infinity`, which is clamped to 1, so the time scale is always 1.
-**Why it looks wrong:** the title screen says "time moves only when you move".
-In the headless run the debug overlay shows `timeScale 1.000` while the
-player stands still.
+- **Steps:**
+  1. Start with no save data (a private window, or clear site data).
+  2. Click **PLAY** on the title screen.
+- **Expected:** the intro words appear and level 1-1 starts.
+- **Actual:** nothing happens; the title screen stays. In **LEVELS**, 1-1 is
+  shown as locked, even when every other level is cleared. Every other level
+  can be started once the one before it is cleared.
+- **Root cause:** [`Ui.isUnlocked`](src/ui/Ui.ts) treated only `index < 0` as
+  always unlocked. For the first level (`index 0`) it looked up
+  `levels[-1]`, got `undefined`, and returned `false`. `Game.startLevel` returns
+  early for locked levels, so the click did nothing.
+- **Fix:** `index <= 0` is always unlocked.
+- **Verified:** `node tools/playtest/repro/play-button.mjs` → `PASS` (was
+  `FAIL state=title`). Levels 2+ are still locked until the previous level is
+  cleared.
 
-### B2. Level 1-1 can never be started; PLAY does nothing on a fresh save (confirmed)
-`Ui.isUnlocked(index)` in [src/ui/Ui.ts](src/ui/Ui.ts) returns `true` only for
-`index < 0`. For `index = 0`, `levels[-1]` is `undefined`, so it returns
-`false`. `Game.startLevel` returns early for locked levels.
-**Why it looks wrong:** the first level should always be unlocked. A new
-player clicks PLAY and nothing happens, and the levels screen shows 1-1 as
-locked even when every other level is cleared. The check was probably meant
-to be `index <= 0`.
+## Open (noticed, not yet fixed)
 
-### B3. Debug time keys work in normal play (from reading)
-F2 (freeze time) and F3 (real time) are handled in `Game.frame` in every build.
-**Why it looks wrong:** F2 freezes the world while the player keeps moving,
-which makes the saved real-time best times easy to cheat.
-
-## Replay and viewmodel
-
-### B4. Replay hand-bob uses the distance from the world origin (from reading)
-In `Game.render`, the stride passed to `Viewmodel.draw` during a replay is
-`Math.hypot(current.pos[0], current.pos[2])`. That is the player's distance
-from (0, 0), not the distance walked (`PlayerController.stride` in live play).
-**Why it looks wrong:** the hands bob differently in the replay than in the
-recorded play, and they bob even while the player stands still away from the
-origin.
-
-### B5. Hand sway gets a stale mouse movement while paused or after a clear (from reading)
-`Viewmodel.update` is fed `this.player.mouseDx/mouseDy`, which only
-`PlayerController.look()` updates. `look()` isn't called in the `paused` state,
-so the last mouse movement before pausing is fed again on every frame.
-**Why it looks wrong:** the hands should settle when there is no input.
-
-### B6. Enemy aim pitch is not interpolated (from reading)
-`Game.drawEnemy` passes `e.aimPitch` directly, while every other pose input
-(position, yaw, walk phase, aim blend, …) is interpolated between the previous
-and current simulation step with `alpha`.
-**Why it looks wrong:** this probably causes small visible steps in the
-enemies' arm angle when time is slow.
-
-## Inconsistencies and dead code
-
-### B7. Three different gravities (from reading)
-Enemies use `GRAVITY = 18` ([enemy.ts](src/game/world/enemy.ts)); props and
-the player use `GRAVITY2 = 16` ([constants.ts](src/game/world/constants.ts))
-and `GRAVITY3 = 16` ([PlayerController.ts](src/game/player/PlayerController.ts)).
-**Why it looks wrong:** enemies fall faster than everything else, and the
-numbered names suggest copies that drifted apart, not a design decision.
-
-### B8. Two different pitch limits (from reading)
-`MAX_PITCH` (camera) is `π/2 − 0.001`; `MAX_PITCH2` (player) is `π/2 − 0.02`.
-**Why it looks wrong:** this is harmless today, because the player limit is
-the tighter one, but it is another duplicated constant with two values.
-
-### B9. Unused input bindings, and Space bound twice (from reading)
-`debugToggleCamera` (F1), `flyUp` (Space) and `flyDown` (Shift/Ctrl) are bound
-in [Input.ts](src/engine/input/Input.ts) but never read anywhere.
-`Input.wasReleased` is never called, and unlike `isDown`/`wasPressed` it
-ignores the gamepad.
-**Why it looks wrong:** these are leftovers of a removed free-fly camera.
-Space being both `jump` and `flyUp` is a trap for whoever brings it back.
-
-### B10. Player/enemy push distance hardcodes the enemy radius (from reading)
-`PlayerController.update` uses `PLAYER_RADIUS + 0.3` instead of
-`PLAYER_RADIUS + ENEMY_RADIUS`.
-**Why it looks wrong:** the values match today (`ENEMY_RADIUS` is 0.3), but
-changing the enemy size would silently not change the collision.
+- **Time never slows down.** The core mechanic is off: `Game.frame` passes
+  `WALK_SPEED` and `planarSpeed` to `TimeScaleDriver.update` in the wrong
+  order. The time scale is 1.000 while standing still
+  (`repro/time-scale.mjs`).
+- **Debug keys work in normal play.** F2 (freeze time) and F3 (real time)
+  are always active, so the saved best times are easy to cheat.
+- **Replay hand-bob uses the distance from the world origin**, not the
+  distance walked (`Game.render`, `stride` during a replay).
+- **Hand sway gets a stale mouse movement while paused.**
+  `Viewmodel.update` is fed `player.mouseDx/Dy`, which is not updated while
+  paused.
+- **Enemy aim pitch is not interpolated**, unlike every other pose input
+  (`Game.drawEnemy`).
+- **Three gravities:** 18 for enemies, 16 for props and the player
+  (`GRAVITY`, `GRAVITY2`, `GRAVITY3`).
+- **Two pitch limits:** `MAX_PITCH` (camera) and `MAX_PITCH2` (player).
+- **Unused input bindings:** `debugToggleCamera`, `flyUp` (Space, also
+  bound to jump) and `flyDown` are never read. `Input.wasReleased` is unused
+  and ignores the gamepad.
+- **The player/enemy push distance hardcodes 0.3** instead of
+  `ENEMY_RADIUS`.

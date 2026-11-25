@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "check:equivalence": "node tools/equivalence/check.mjs"
+    "check:equivalence": "node tools/equivalence/check.mjs",
+    "repro": "node tools/playtest/run-all.mjs"
   },
   "devDependencies": {
     "@webgpu/types": "^0.1.74",
