@@ -1,8 +1,17 @@
 // Walkability grid and A* pathfinding for enemies.
 
-const CELL2 = 0.5;
+// Cell size. Must be fine enough that every gap a 0.6 m wide body fits
+// through has a cell centre in it: with 0.5 m cells the 0.96 m aisle beside
+// the grab poles in 1-2 had none and read as blocked.
+const CELL2 = 0.25;
 
+// how close a cell centre may be to an obstacle (enemy body radius 0.3 + margin)
 const AGENT_RADIUS = 0.32;
+
+// cell-count dependent search limits, kept equivalent in metres to the
+// original 0.5 m grid (4000 expansions, 3 m ring search)
+const MAX_EXPANSIONS = 4e3 * (0.5 / CELL2) ** 2;
+const NEAREST_RINGS = Math.round(3 / CELL2);
 
 const STEP = 0.4;
 
@@ -51,7 +60,9 @@ export class NavGrid {
         let floorY = -Infinity;
         for (const i of cand) {
           const bx = boxes[i];
-          if (x >= bx.min[0] && x <= bx.max[0] && z >= bx.min[2] && z <= bx.max[2] && bx.max[1] <= MAX_FLOOR && bx.max[1] > floorY) {
+          // a ceiling or door lintel low enough (< MAX_FLOOR) would otherwise become
+          // the cell's only floor, hiding the real floor under it (1-2 carriage)
+          if (!bx.overhead && x >= bx.min[0] && x <= bx.max[0] && z >= bx.min[2] && z <= bx.max[2] && bx.max[1] <= MAX_FLOOR && bx.max[1] > floorY) {
             floorY = bx.max[1];
           }
         }
@@ -94,7 +105,7 @@ export class NavGrid {
       return c0;
     const cx0 = Math.floor((x - this.originX) / CELL2);
     const cz0 = Math.floor((z - this.originZ) / CELL2);
-    for (let ring = 1; ring <= 6; ring++) {
+    for (let ring = 1; ring <= NEAREST_RINGS; ring++) {
       let best = -1;
       let bestD = Infinity;
       for (let dz = -ring; dz <= ring; dz++) {
@@ -107,7 +118,7 @@ export class NavGrid {
           const c = cz * this.w + cx;
           if (!this.walkable(c))
             continue;
-          const d = dx * dx + dz * dz + Math.abs(this.floor[c] - nearY) * 4;
+          const d = (dx * dx + dz * dz) * CELL2 * CELL2 + Math.abs(this.floor[c] - nearY);
           if (d < bestD) {
             bestD = d;
             best = c;
@@ -119,7 +130,7 @@ export class NavGrid {
     }
     return -1;
   }
-  findPath(from, to, maxExpansions = 4e3) {
+  findPath(from, to, maxExpansions = MAX_EXPANSIONS) {
     const start = this.nearestWalkable(from[0], from[2], from[1]);
     const goal = this.nearestWalkable(to[0], to[2], to[1]);
     if (start < 0 || goal < 0)

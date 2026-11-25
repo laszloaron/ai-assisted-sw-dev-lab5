@@ -31,8 +31,14 @@ class LevelBuilder {
   floor(x0, z0, x1, z1, y = 0, mat = "floor") {
     return this.box(x0, y - 0.4, z0, x1, y, z1, mat);
   }
+  /** Marks the last box as overhead geometry nobody stands on (ceiling, door
+   *  lintel), so NavGrid never takes its top for the floor of the cells below. */
+  overhead() {
+    this.boxes[this.boxes.length - 1].overhead = true;
+    return this;
+  }
   ceiling(x0, z0, x1, z1, y, mat = "dark") {
-    return this.box(x0, y, z0, x1, y + 0.3, z1, mat);
+    return this.box(x0, y, z0, x1, y + 0.3, z1, mat).overhead();
   }
   wallX(x0, x1, z, h, t = 0.3, mat = "wall", y0 = 0) {
     return this.box(x0, y0, z - t / 2, x1, y0 + h, z + t / 2, mat);
@@ -41,11 +47,11 @@ class LevelBuilder {
     return this.box(x - t / 2, y0, z0, x + t / 2, y0 + h, z1, mat);
   }
   wallWithDoorsX(x0, x1, z, h, doors, t = 0.3, mat = "wall", y0 = 0) {
-    this.segmented(x0, x1, doors, h, (a, b) => this.wallX(a, b, z, h, t, mat, y0), (a, b, dh) => this.box(a, y0 + dh, z - t / 2, b, y0 + h, z + t / 2, mat));
+    this.segmented(x0, x1, doors, h, (a, b) => this.wallX(a, b, z, h, t, mat, y0), (a, b, dh) => this.box(a, y0 + dh, z - t / 2, b, y0 + h, z + t / 2, mat).overhead());
     return this;
   }
   wallWithDoorsZ(z0, z1, x, h, doors, t = 0.3, mat = "wall", y0 = 0) {
-    this.segmented(z0, z1, doors, h, (a, b) => this.wallZ(a, b, x, h, t, mat, y0), (a, b, dh) => this.box(x - t / 2, y0 + dh, a, x + t / 2, y0 + h, b, mat));
+    this.segmented(z0, z1, doors, h, (a, b) => this.wallZ(a, b, x, h, t, mat, y0), (a, b, dh) => this.box(x - t / 2, y0 + dh, a, x + t / 2, y0 + h, b, mat).overhead());
     return this;
   }
   segmented(a0, a1, doors, h, solid, lintel) {

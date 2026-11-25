@@ -300,7 +300,10 @@ function applyGravityAndMove(world, e, vx, vz, dt) {
 }
 
 function nextWaypoint(world, e, target, dt) {
-  const straight = distXZ(target, e.pos) < 2.2 && Math.abs(target[1] - e.pos[1]) < 0.5;
+  // walk straight at a close target only if nothing is in between (at waist
+  // height); otherwise path-find, e.g. around a wall to the nearest door
+  const straight = distXZ(target, e.pos) < 2.2 && Math.abs(target[1] - e.pos[1]) < 0.5 &&
+    world.static.lineClear([e.pos[0], e.pos[1] + 1, e.pos[2]], [target[0], target[1] + 1, target[2]]);
   if (straight) {
     e.path = null;
     return target;

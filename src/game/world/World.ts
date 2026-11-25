@@ -37,7 +37,7 @@ export class World {
       this.static = sharedStatic.static;
       this.nav = sharedStatic.nav;
     } else {
-      const boxes = def.boxes.filter((b) => b.collide).map((b) => ({ min: [...b.min], max: [...b.max] }));
+      const boxes = def.boxes.filter((b) => b.collide).map((b) => ({ min: [...b.min], max: [...b.max], overhead: !!b.overhead }));
       this.static = new StaticWorld(boxes);
       this.nav = new NavGrid(this.static);
     }

@@ -104,6 +104,46 @@ headless against the real game modules (see
   - In the open, the rusher still kills.
   - With the fix removed, the same test reports `FAIL … THROUGH THE WALL`.
 
+### 5. Enemies get stuck against walls and never reach you (1-2 can't be finished)
+
+- **Steps:**
+  1. Start level 1-2 and kill the two walkers.
+  2. Stay inside the carriage near the middle, where z is about −10.
+- **Expected:** the second-wave rushers run in through one of the carriage
+  doors and attack.
+- **Actual:** a rusher runs to the outside of the carriage wall, opposite you,
+  and stays pressed against it forever. The level can't be finished from
+  inside the carriage; you have to go out and hunt it. It doesn't happen when
+  the enemy has a clear straight line to you. This only appeared after bug #4
+  was fixed: before, that rusher simply killed you through the wall.
+- **Root cause:** three faults together, found one after the other with the
+  reproduction below.
+  1. [`nextWaypoint`](src/game/world/enemy.ts) walked straight at any target
+     closer than 2.2 m, even through a wall.
+  2. [`NavGrid.bake`](src/game/world/NavGrid.ts) keeps one floor height per
+     cell: the highest box top below 3.3 m. The carriage ceiling (2.6 m) and
+     the door lintels (2.1–2.6 m) qualified, so for path-finding the carriage
+     interior and its doorways were at roof height. The player's position
+     mapped to a ground cell *outside* the wall, where the rusher already
+     stood. The same affects every ceiling or lintel under 3.3 m (1-5 and the
+     Act 2 offices).
+  3. With 0.5 m cells, the 0.96 m aisle beside the grab poles had no cell
+     centre where a 0.6 m body fits. The aisle was cut off at every pole. A
+     smaller clearance radius just steered bodies into the seat corners, where
+     `moveAxis` stopped them on a 0.3 mm overlap.
+- **Fix:**
+  1. Walk straight only when the line to the target is clear.
+  2. `LevelBuilder` marks ceilings and door lintels as `overhead`, and
+     `NavGrid` never uses an overhead box as a floor.
+  3. Nav cells are 0.25 m with the original 0.32 m clearance. The search
+     limits are scaled to stay the same in metres. Cost measured on all 15
+     levels: bake under 8 ms, about 1–6 ms per path.
+- **Verified:**
+  - `node tools/playtest/repro/enemy-stuck-at-wall.mjs` → `PASS rusher
+    reached the player after 2.9 s` (was: still at the wall after 15 s).
+  - `melee-through-wall` still `PASS`.
+  - The bot now clears 1-2 (`node tools/playtest/bot-run.mjs 1`).
+
 ## Open (noticed, not yet fixed)
 
 - **Level 3-5 rusher spawns are deep inside a building block** at (±14, 0),
