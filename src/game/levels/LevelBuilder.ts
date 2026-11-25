@@ -1,5 +1,25 @@
 // Small language for building levels out of boxes (rooms, walls, pillars, crates).
 
+/** A doorway in a room wall: centred at `at` along the wall; `height` defaults to the wall height. */
+export interface Door {
+  side?: "n" | "s" | "e" | "w";
+  at: number;
+  width: number;
+  height?: number;
+}
+
+/** Options for LevelBuilder.room(). */
+export interface RoomOptions {
+  /** wall thickness */
+  t?: number;
+  mat?: string;
+  doors?: Door[];
+  /** set to false for a room without its own floor */
+  floor?: boolean;
+  floorMat?: string;
+  ceiling?: boolean;
+}
+
 class LevelBuilder {
   boxes = [];
   box(x0, y0, z0, x1, y1, z1, mat = "wall", collide = true) {
@@ -41,7 +61,7 @@ class LevelBuilder {
     if (cur < a1)
       solid(cur, a1);
   }
-  room(x0, z0, x1, z1, h, opts = {}) {
+  room(x0, z0, x1, z1, h, opts: RoomOptions = {}) {
     const t = opts.t ?? 0.4;
     const mat = opts.mat ?? "wall";
     const doors = opts.doors ?? [];

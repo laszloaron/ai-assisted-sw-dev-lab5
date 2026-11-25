@@ -1,6 +1,16 @@
 // WebAudio output: positional sound effects and the time-scale-filtered music.
 import { SYNTHS } from "./synth";
 
+/** Options for AudioEngine.play(). */
+export interface PlayOptions {
+  /** play at normal speed regardless of the game's time scale (UI sounds) */
+  ignoreTime?: boolean;
+  pitch?: number;
+  volume?: number;
+  /** world position for distance falloff and panning; omit for a non-positional sound */
+  pos?: ArrayLike<number>;
+}
+
 export class AudioEngine {
   ctx = null;
   master = null;
@@ -55,7 +65,7 @@ export class AudioEngine {
     this.musicFilter.frequency.setTargetAtTime(180 + 3800 * ts * ts, now, 0.08);
     this.droneGain.gain.setTargetAtTime(ts < 0.1 ? 0.22 : 0, now, 0.25);
   }
-  play(name, opts = {}) {
+  play(name: string, opts: PlayOptions = {}) {
     const ctx = this.ctx;
     const buf = this.buffers.get(name);
     if (!ctx || !buf || !this.sfxBus)

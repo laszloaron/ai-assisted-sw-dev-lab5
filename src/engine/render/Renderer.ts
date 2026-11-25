@@ -247,7 +247,7 @@ export class Renderer {
       primitive: { topology: "triangle-list", cullMode: "none" },
       depthStencil: { format: DEPTH_FORMAT, depthWriteEnabled: false, depthCompare: "less" }
     });
-    const fullscreen = (label, module, entryPoint, format, layout, blend) => device.createRenderPipeline({
+    const fullscreen = (label: string, module: GPUShaderModule, entryPoint: string, format: GPUTextureFormat, layout: GPUPipelineLayout | "auto", blend?: GPUBlendState) => device.createRenderPipeline({
       label,
       layout,
       vertex: { module, entryPoint: "vsFull" },
