@@ -1,0 +1,77 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "vite: dev server",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^(__vite_never_matches__)(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "> stillframe@",
+          "endsPattern": "Local"
+        }
+      }
+    },
+    {
+      "label": "vite: build",
+      "type": "npm",
+      "script": "build",
+      "group": "build",
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "vite: preview server",
+      "type": "npm",
+      "script": "preview",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^(__vite_never_matches__)(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "> stillframe@",
+          "endsPattern": "Local"
+        }
+      }
+    },
+    {
+      "label": "vite: build + preview",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "vite: build",
+        "vite: preview server"
+      ]
+    },
+    {
+      "label": "stop servers",
+      "command": "echo ${input:terminateAll}",
+      "type": "shell",
+      "presentation": {
+        "reveal": "never"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "terminateAll",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "terminateAll"
+    }
+  ]
+}

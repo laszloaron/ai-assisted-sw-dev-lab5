@@ -1,0 +1,27 @@
+{
+  // F5 runs the configuration selected in the Run and Debug view.
+  // Both start their server, open Chrome with the debugger attached, and stop
+  // the server when the debug session ends. Breakpoints in src/ work in both
+  // (Vite serves source maps in dev; the production build emits them too).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Dev server (Vite + Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "vite: dev server",
+      "postDebugTask": "stop servers"
+    },
+    {
+      "name": "Production build (build + preview + Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:4173",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "vite: build + preview",
+      "postDebugTask": "stop servers"
+    }
+  ]
+}
